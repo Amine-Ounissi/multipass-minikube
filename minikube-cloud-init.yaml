@@ -1,0 +1,88 @@
+# package_update: true
+# packages:
+#   - docker.io
+
+runcmd:
+  #Act as a root
+  - "sudo su -"
+
+  # create k8s mount directory
+  - "mkdir -p /root/k8s"
+
+  # create helm mount directory
+  - "mkdir -p /root/helm"
+
+  # create volumes directory
+
+
+  # install docker
+  - "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -"
+  - "add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\""
+  - "apt-get update"
+  - "apt-get install docker-ce docker-ce-cli containerd.io -y"
+
+  # install kubectl
+  - "curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
+  - "chmod +x ./kubectl"
+  - "mv ./kubectl /usr/local/bin/kubectl"
+
+  # install minikube
+  - "curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64"
+  - "chmod +x minikube"
+  - "mv ./minikube /usr/local/bin/minikube"
+
+  # Kubernetes 1.20 requires conntrack to be installed
+  - apt-get install -y conntrack
+  - ln -s /usr/sbin/conntrack /usr/bin/conntrack
+
+  # configure minikube
+  #- "minikube config set vm-driver none"
+  #- "minikube config set cpus 2"
+  #- "minikube config set memory 4000"
+  #- "minikube config set disk-size 20000"
+
+  # start minikube
+  #- "su root -c '/usr/local/bin/minikube start --kubernetes-version=v1.20.0'"
+
+  # minikube enable addons
+  #- "su root -c '/usr/local/bin/minikube addons enable ingress'"
+  #- "su root -c '/usr/local/bin/minikube addons enable dashboard'"
+  #- "su root -c '/usr/local/bin/minikube addons enable helm-tiller'"
+  #- "su root -c '/usr/local/bin/minikube addons enable logviewer'"
+
+  # install helm
+  - "curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash"
+
+
+
+write_files:
+  -
+    content: |
+      # bash completion
+      source /etc/bash_completion
+      # kubectl completion
+      source <(kubectl completion bash)
+      # helm completion
+      source <(helm completion bash)
+
+      # aliases
+      alias k=kubectl
+      alias kg='kubectl get'
+      alias ka='kubectl apply -f'
+      alias kd='kubectl delete -f'
+    path: /root/.bashrc
+    append: true
+  -
+    content: |
+      {
+        "cpus": 4,
+        "disk-size": "20000",
+        "memory": 4000,
+        "vm-driver": "none"
+      }
+    path: /root/.minikube/config/config.json
+
+chpasswd:
+  list:
+    - "root:root"
+  expire: false
